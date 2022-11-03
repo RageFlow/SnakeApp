@@ -84,6 +84,8 @@
 
                 <Rectangle Fill="Black" Opacity="0.7" Grid.ColumnSpan="5" Grid.RowSpan="6" />
 
+                <Label Name="Highscore" Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="0" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Top" FontSize="20" Foreground="White" Margin="0,-5,0,0" />
+                
                 <Label Grid.Column="1" Grid.ColumnSpan="3" Content="Foo Snake" HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" FontSize="45" Foreground="White" Margin="0,45,0,0" Grid.RowSpan="2" />
 
                 <Button Name="StartButton" Click="StartGame" Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="3" Margin="10" >
@@ -103,13 +105,13 @@
 
                 <Canvas Grid.Column="1" Grid.Row="4" Name="GameSizeInputBox" Width="90" Height="50">
                     <Label Content="Grid Size:" Margin="0,-5,10,20" Foreground="White" FontSize="20"/>
-                    <TextBox Name="GameSizeInput" TextChanged="SizeTextChanged" PreviewTextInput="NumberValidationTextBox" Text="10" Height="20" Width="30" Margin="5,30,0,0" />
+                    <TextBox Name="GameSizeInput" TextChanged="SizeTextChanged" PreviewTextInput="NumberValidationTextBox" Text="14" Height="20" Width="30" Margin="5,30,0,0" />
                     <Label Content="Blocks" Foreground="White" FontSize="15" Margin="35,25,0,0"/>
                 </Canvas>
 
                 <Canvas Grid.Column="2" Grid.Row="4" Name="GameSpeedInputBox" Width="124" Height="50">
                     <Label Content="Game Speed:" Margin="0,-5,10,20" Foreground="White" FontSize="20"/>
-                    <TextBox Name="GameSpeedInput" TextChanged="SpeedTextChanged" PreviewTextInput="NumberValidationTextBox" Text="400" Height="20" Width="40" Margin="25,30,0,0" />
+                    <TextBox Name="GameSpeedInput" TextChanged="SpeedTextChanged" PreviewTextInput="NumberValidationTextBox" Text="300" Height="20" Width="40" Margin="25,30,0,0" />
                     <Label Content="ms." Foreground="White" FontSize="15" Margin="65,25,0,0"/>
                 </Canvas>
 

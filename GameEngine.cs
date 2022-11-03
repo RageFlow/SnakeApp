@@ -8,41 +8,44 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows;
 using SnakeApp;
+using System.Linq;
 
 public class GameEngine
 {
-    public GameEngine()
-    {
-    }
-
-    private static readonly object DirectionLock = new object();
+    public static readonly object DirectionLock = new object();
     private static AutoResetEvent _blockGameThread = new AutoResetEvent(true);
     private static ManualResetEvent _GameThread = new ManualResetEvent(false);
 
     private List<Food> food = new();
-    Dictionary<int, SnakePart> snake = new Dictionary<int, SnakePart>();
+    private List<SnakePart> snake = new List<SnakePart>();
     private int foodCollected { get; set; }
 
-    Direction GameSnakeDirection = Direction.Right;
-    Direction IgnoreDirection = Direction.Left;
-    bool SnakeAlive = false;
-    bool GameActive = false;
+    public static Direction GameSnakeDirection = Direction.Right;
+    public static Direction IgnoreDirection = Direction.Left;
 
-    public void Resume() => _GameThread.Set();
-    public void Pause() => _GameThread.Reset();
+    bool SnakeAlive = false;
+    public bool GameActive = false;
+
+    public static void Resume() => _GameThread.Set();
+    public static void Pause() => _GameThread.Reset();
 
     public void ResetGame()
     {
         System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "GridLengthConverter" & "SnakeGrid" is owned by default WPF Thread
         {
-            Menu.Visibility = Visibility.Visible;
-            StartButton.Visibility = Visibility.Visible;
-            ResumeButton.Visibility = Visibility.Hidden;
+            AppWindow.HideStopButton();
 
-            //Resetting props
-            SnakeGrid.Children.Clear();
-            SnakeGrid.RowDefinitions.Clear();
-            SnakeGrid.ColumnDefinitions.Clear();
+            gameMenu.UpdateHighscore(foodCollected);
+
+            // Shows input fields
+            AppWindow.ShowInputFields();
+
+            // Resetting menu buttons to default
+            AppWindow.SetupForNoGame();
+
+            // Resetting props
+            AppWindow.ClearGameArea();
+
             food = new();
             snake = new();
             foodCollected = 0;
@@ -52,32 +55,33 @@ public class GameEngine
             GameActive = false;
             //Resetting props
 
-            UpdateGameSettings();
+            gameMenu.UpdateGameSettings();
 
             GridLengthConverter gridLengthConverter = new GridLengthConverter();
 
             for (int i = 0; i < GameMenu.GameSize; i++)
             {
-                SnakeGrid.RowDefinitions.Add(new RowDefinition() { Height = (GridLength)gridLengthConverter.ConvertFrom("*") });
-                SnakeGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = (GridLength)gridLengthConverter.ConvertFrom("*") });
+                AppWindow.SnakeGrid.RowDefinitions.Add(new RowDefinition() { Height = (GridLength)gridLengthConverter.ConvertFrom("*") });
+                AppWindow.SnakeGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = (GridLength)gridLengthConverter.ConvertFrom("*") });
             }
         });
     }
 
-    private void StopGame(object sender, RoutedEventArgs e)
+    public void StopGame()
     {
         SnakeAlive = false;
         GameActive = false;
         ResetGame(); // Reset game for new run
         Resume(); // Starts GameTimer (Activates _GameThread which we use for pausing the game)
-        StopGameButton.Visibility = Visibility.Hidden;
 
-        GameMenu.ShowInputFields();
+        AppWindow.HideStopButton();
+
+        AppWindow.ShowInputFields();
     }
 
-    private void StartGame(object sender, RoutedEventArgs e)
+    public void StartGame()
     {
-        GameMenu.HideInputFields(); // Hide input fields when game is active
+        AppWindow.HideInputFields(); // Hide input fields when game is active
 
         ResetGame(); // Reset game for new run
         SnakeAlive = true;
@@ -95,7 +99,7 @@ public class GameEngine
         while (GameActive)
         {
             _GameThread.WaitOne(); // Check for pause
-            Thread.Sleep(GameSpeed);
+            Thread.Sleep(GameMenu.GameSpeed);
             _blockGameThread.Set();
         }
     }
@@ -110,8 +114,11 @@ public class GameEngine
             _GameThread.WaitOne(); // Check for pause
 
             UpdateSnake(GameSnakeDirection);
+
             CheckIfAddFood();
+
             CheckIfColOnSnake();
+
             CheckIfColOnFood();
         }
 
@@ -120,24 +127,20 @@ public class GameEngine
 
     private void SetupGame() // First init of game after user pressed the Play Button
     {
-        int middle = GameSize / 2;
+        int middle = GameMenu.GameSize / 2;
 
         System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate
         {
-            Menu.Visibility = Visibility.Hidden;
-
-            Ellipse newFood = new Ellipse();
-            newFood.Fill = Brushes.Yellow;
-
-            food.Add(new Food() { FoodBox = newFood, Active = true }); ;
-            SnakeGrid.Children.Add(newFood);
+            AppWindow.HideMenu();
         });
 
         for (int i = 0; i < 3; i++)
         {
             System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate
             {
-                Canvas part = new Canvas() { Name = $"Snake{i}" };
+                Canvas part = new Canvas();
+                //part.Name = $"snake{part.PersistId}";
+                part.Uid = Guid.NewGuid().ToString();
 
                 if (i == 0)
                 {
@@ -147,8 +150,8 @@ public class GameEngine
                 {
                     part.Background = Brushes.Red;
                 }
-                snake.Add(i, new SnakePart() { Part = part, X = middle, Y = middle });
-                SnakeGrid.Children.Add(part);
+                snake.Add(new SnakePart() { Part = part, X = middle, Y = middle });
+                AppWindow.SnakeGrid.Children.Add(part);
                 SetPosition(part, middle, middle);
             });
         }
@@ -156,17 +159,22 @@ public class GameEngine
 
     public void AddSnakePart()
     {
-        System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Canvas" & "SnakeGrid" is owned by default WPF Thread
+        if (snake.Count > 0)
         {
-            ScoreBoardScore.Content = foodCollected * 1000; // Adding score to scoreboard
+            System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Canvas" & "SnakeGrid" is owned by default WPF Thread
+            {
+                AppWindow.ScoreBoardScore.Content = foodCollected * 1000; // Adding score to scoreboard
 
-            SnakePart temp = snake.Last().Value;
-            Canvas part = new Canvas() { Name = $"Snake{snake.Count - 1}" };
-            part.Background = Brushes.Red;
-            SnakeGrid.Children.Add(part);
-            snake.Add(snake.Count, new SnakePart() { Part = part, X = temp.X, Y = temp.Y });
-            SetPosition(part, temp.X, temp.Y);
-        });
+                SnakePart temp = snake.Last();
+                Canvas part = new Canvas();
+                //part.Name = $"snake{part.PersistId}";
+                part.Uid = Guid.NewGuid().ToString();
+                part.Background = Brushes.Red;
+                AppWindow.SnakeGrid.Children.Add(part);
+                snake.Add(new SnakePart() { Part = part, X = temp.X, Y = temp.Y });
+                SetPosition(part, temp.X, temp.Y);
+            });
+        }
     }
 
     public static void SetPosition(Canvas part, int x, int y)
@@ -197,64 +205,76 @@ public class GameEngine
         Stopwatch UpdateSnakeTimer = new();
         UpdateSnakeTimer.Start();
 
-        foreach (var item in snake.OrderByDescending(x => x.Key).ToArray()) //Going throud Snake from last piece to first.
-        {
-            if (item.Key == 0)
-            {
-                lock (DirectionLock) // Direction selected through user input
-                {
-                    if (direction == Direction.Up)
-                    {
-                        item.Value.Y -= 1;
-                        IgnoreDirection = Direction.Down;
-                    }
-                    else if (direction == Direction.Right)
-                    {
-                        item.Value.X += 1;
-                        IgnoreDirection = Direction.Left;
-                    }
-                    if (direction == Direction.Down)
-                    {
-                        item.Value.Y += 1;
-                        IgnoreDirection = Direction.Up;
-                    }
-                    if (direction == Direction.Left)
-                    {
-                        item.Value.X -= 1;
-                        IgnoreDirection = Direction.Right;
-                    }
-                }
+        SnakePart tempSnakeHead = snake.FirstOrDefault();        
 
-                // Section for Game border transition
-                if (item.Value.Y < 0)
-                {
-                    item.Value.Y = GameSize - 1; // Y is ZeroIndex (-1)
-                }
-                else if (item.Value.X > GameSize - 1)// X is ZeroIndex (-1)
-                {
-                    item.Value.X = 0;
-                }
-                else if (item.Value.Y > GameSize - 1) // Y is ZeroIndex (-1)
-                {
-                    item.Value.Y = 0;
-                }
-                else if (item.Value.X < 0)
-                {
-                    item.Value.X = GameSize - 1;  // X is ZeroIndex (-1)
-                }
-                SetPosition(item.Value.Part, item.Value.X, item.Value.Y);
-            }
-            else
+        SnakePart newSnakeHead = new();
+
+        if (tempSnakeHead != null)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Grid" is owned by default WPF Thread
             {
-                int nextPartId = item.Key - 1;
-                SnakePart nextPart = snake[nextPartId];
-                if (item.Value.X != nextPart.X || item.Value.Y != nextPart.Y)
+                tempSnakeHead.Part.Background = Brushes.Red;
+
+                Canvas part = new Canvas();
+                part.Background = Brushes.DarkRed;
+                newSnakeHead = new SnakePart() { Part = part, X = tempSnakeHead.X, Y = tempSnakeHead.Y };
+                newSnakeHead.Part.Uid = Guid.NewGuid().ToString();
+                AppWindow.SnakeGrid.Children.Add(part);
+                snake.Insert(0,newSnakeHead);
+                SetPosition(newSnakeHead.Part, newSnakeHead.X, newSnakeHead.Y);
+
+                SnakePart lastSnakePart = snake.Last();
+                AppWindow.SnakeGrid.Children.Remove(lastSnakePart.Part);
+                snake.RemoveAt(snake.Count - 1);
+                Console.WriteLine();
+            });
+        }
+
+        if (tempSnakeHead != null)
+        {
+            lock (DirectionLock) // Direction selected through user input
+            {
+                if (direction == Direction.Up)
                 {
-                    item.Value.X = nextPart.X;
-                    item.Value.Y = nextPart.Y;
+                    newSnakeHead.Y = tempSnakeHead.Y - 1;
+                    IgnoreDirection = Direction.Down;
                 }
-                SetPosition(item.Value.Part, item.Value.X, item.Value.Y);
+                else if (direction == Direction.Right)
+                {
+                    newSnakeHead.X = tempSnakeHead.X + 1;
+                    IgnoreDirection = Direction.Left;
+                }
+                if (direction == Direction.Down)
+                {
+                    newSnakeHead.Y = tempSnakeHead.Y + 1;
+                    IgnoreDirection = Direction.Up;
+                }
+                if (direction == Direction.Left)
+                {
+                    newSnakeHead.X = tempSnakeHead.X - 1;
+                    IgnoreDirection = Direction.Right;
+                }
             }
+
+            // Section for Game border transition
+            if (newSnakeHead.Y < 0)
+            {
+                newSnakeHead.Y = GameMenu.GameSize - 1; // Y is ZeroIndex (-1)
+            }
+            else if (newSnakeHead.X > GameMenu.GameSize - 1)// X is ZeroIndex (-1)
+            {
+                newSnakeHead.X = 0;
+            }
+            else if (newSnakeHead.Y > GameMenu.GameSize - 1) // Y is ZeroIndex (-1)
+            {
+                newSnakeHead.Y = 0;
+            }
+            else if (newSnakeHead.X < 0)
+            {
+                newSnakeHead.X = GameMenu.GameSize - 1;  // X is ZeroIndex (-1)
+            }
+
+            SetPosition(newSnakeHead.Part, newSnakeHead.X, newSnakeHead.Y);
         }
 
         UpdateSnakeTimer.Stop();
@@ -265,7 +285,7 @@ public class GameEngine
         if (snake.Count > 3)
         {
             var tempSnake = snake.FirstOrDefault();
-            if (snake.Any(x => x.Key != 0 && x.Value.X == tempSnake.Value.X && x.Value.Y == tempSnake.Value.Y))
+            if (snake.Any(x => x != snake.FirstOrDefault() && x.X == tempSnake.X && x.Y == tempSnake.Y))
             {
                 SnakeAlive = false;
             }
@@ -281,11 +301,11 @@ public class GameEngine
             List<Food> TempFood = new();
             foreach (var item in food)
             {
-                if (tempSnake.Value.X == item.X && tempSnake.Value.Y == item.Y) // Check if snake head is on food
+                if (tempSnake.X == item.X && tempSnake.Y == item.Y) // Check if snake head is on food
                 {
                     System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate
                     {
-                        SnakeGrid.Children.Remove(item.FoodBox);
+                        AppWindow.SnakeGrid.Children.Remove(item.FoodBox);
                     });
 
                     TempFood.Add(item);
@@ -299,9 +319,9 @@ public class GameEngine
                 food.Remove(item);
             }
         }
-        if (food.Count == 0 || GameBonusActive && GameBonusAdd)
+        if (food.Count == 0 || gameMenu.GameBonusActive && gameMenu.GameBonusAdd)
         {
-            GameBonusAdd = false;
+            gameMenu.GameBonusAdd = false;
 
             Random rand = new Random();
 
@@ -309,9 +329,9 @@ public class GameEngine
 
             while (true) // Try to spawn food
             {
-                int rndX = rand.Next(GameSize); // Random X
-                int rndY = rand.Next(GameSize); // Random Y
-                if (!snake.Any(x => x.Value.X == rndX && x.Value.Y == rndY)) // If Random X & Y does not match any snake positions
+                int rndX = rand.Next(GameMenu.GameSize); // Random X
+                int rndY = rand.Next(GameMenu.GameSize); // Random Y
+                if (!snake.Any(x => x.X == rndX && x.Y == rndY) && !food.Any(x => x.X == rndX && x.Y == rndY)) // If Random X & Y does not match any snake positions
                 {
                     newFood.X = rndX;
                     newFood.Y = rndY;
@@ -322,7 +342,7 @@ public class GameEngine
                         Ellipse newFoodBox = new Ellipse();
                         newFoodBox.Fill = Brushes.Yellow;
                         newFood.FoodBox = newFoodBox;
-                        SnakeGrid.Children.Add(newFoodBox);
+                        AppWindow.SnakeGrid.Children.Add(newFoodBox);
                     });
 
                     food.Add(newFood);
@@ -336,14 +356,14 @@ public class GameEngine
 
     public void CheckIfAddFood()
     {
-        if (GameActive && GameBonusCounter >= GameBonus)
+        if (GameActive && gameMenu.GameBonusCounter >= GameMenu.GameBonus)
         {
-            GameBonusAdd = true;
-            GameBonusCounter = 0;
+            gameMenu.GameBonusAdd = true;
+            gameMenu.GameBonusCounter = 0;
         }
         if (GameActive)
         {
-            GameBonusCounter++;
+            gameMenu.GameBonusCounter++;
         }
     }
 }

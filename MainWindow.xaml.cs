@@ -1,24 +1,70 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Shapes;
-using static SnakeApp.MainWindow;
 
 namespace SnakeApp
 {
     public partial class MainWindow : Window
-    {        
+    {
+        public static GameEngine gameEngine { get; set; }
+        public static GameMenu gameMenu { get; set; }
+        public static MainWindow AppWindow { get; set; }
+
         public MainWindow()
         {
+            gameEngine = new GameEngine();
+
+            gameMenu = new GameMenu();
+
+            AppWindow = this;
+
             InitializeComponent();
+        }
+
+        private void StartGame(object sender, RoutedEventArgs e)
+        {
+            gameEngine.StartGame();
+        }
+        private void StopGame(object sender, RoutedEventArgs e)
+        {
+            gameEngine.StopGame();
+        }
+
+        public void HideMenu()
+        {
+            Menu.Visibility = Visibility.Hidden;
+        }
+        public void HideInputFields()
+        {
+            GameSizeInputBox.Visibility = Visibility.Hidden;
+            GameSpeedInputBox.Visibility = Visibility.Hidden;
+            GameBonusInputBox.Visibility = Visibility.Hidden;
+        }
+        public void ShowInputFields()
+        {
+            GameSizeInputBox.Visibility = Visibility.Visible;
+            GameSpeedInputBox.Visibility = Visibility.Visible;
+            GameBonusInputBox.Visibility = Visibility.Visible;
+        }
+        public void HideStopButton()
+        {
+            StopGameButton.Visibility = Visibility.Hidden;
+        }
+        public void SetupForNoGame()
+        {
+            AppWindow.Menu.Visibility = Visibility.Visible;
+            AppWindow.StartButton.Visibility = Visibility.Visible;
+            AppWindow.ResumeButton.Visibility = Visibility.Hidden;
+        }
+        public void ClearGameArea()
+        {
+            SnakeGrid.Children.Clear();
+            SnakeGrid.RowDefinitions.Clear();
+            SnakeGrid.ColumnDefinitions.Clear();
         }
 
         private static readonly Regex _regex = new Regex("[^0-9]+"); //regex that matches disallowed text
@@ -29,15 +75,15 @@ namespace SnakeApp
         }
         private void SpeedTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method.
         {
-            GameSpeedInputText = GameSpeedInput.Text;
+            gameMenu.GameSpeedInputText = GameSpeedInput.Text;
         }
         private void SizeTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method.
         {
-            GameSizeInputText = GameSizeInput.Text;
+            gameMenu.GameSizeInputText = GameSizeInput.Text;
         }
         private void BonusTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method.
         {
-            GameBonusInputText = GameBonusInput.Text;
+            gameMenu.GameBonusInputText = GameBonusInput.Text;
         }
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -48,42 +94,44 @@ namespace SnakeApp
                 return;
             }
 
-            if (Monitor.TryEnter(DirectionLock))
+            if (Monitor.TryEnter(GameEngine.DirectionLock))
             {
-                if (e.Key == Key.Up && IgnoreDirection != Direction.Up)
+                if (e.Key == Key.Up && GameEngine.IgnoreDirection != Direction.Up)
                 {
-                    GameSnakeDirection = Direction.Up;
+                    GameEngine.GameSnakeDirection = Direction.Up;
                 }
-                else if (e.Key == Key.Right && IgnoreDirection != Direction.Right)
+                else if (e.Key == Key.Right && GameEngine.IgnoreDirection != Direction.Right)
                 {
-                    GameSnakeDirection = Direction.Right;
+                    GameEngine.GameSnakeDirection = Direction.Right;
                 }
-                else if (e.Key == Key.Down && IgnoreDirection != Direction.Down)
+                else if (e.Key == Key.Down && GameEngine.IgnoreDirection != Direction.Down)
                 {
-                    GameSnakeDirection = Direction.Down;
+                    GameEngine.GameSnakeDirection = Direction.Down;
                 }
-                else if (e.Key == Key.Left && IgnoreDirection != Direction.Left)
+                else if (e.Key == Key.Left && GameEngine.IgnoreDirection != Direction.Left)
                 {
-                    GameSnakeDirection = Direction.Left;
+                    GameEngine.GameSnakeDirection = Direction.Left;
                 }
 
-                Monitor.Exit(DirectionLock);
+                Monitor.Exit(GameEngine.DirectionLock);
             }
 
-            if (e.Key == Key.Escape) // If we want to pause the game
+            if (e.Key == Key.Escape && gameEngine.GameActive) // If we want to pause the game
             {
                 if (Menu.Visibility == Visibility.Hidden)
                 {
-                    Pause();
+                    GameEngine.Pause();
                     Menu.Visibility = Visibility.Visible;
 
                     StartButton.Visibility = Visibility.Hidden; // Hide StartButton
                     ResumeButton.Visibility = Visibility.Visible; // Show Resume button
                     StopGameButton.Visibility = Visibility.Visible; // Show New Game button
+
+                    HideInputFields();
                 }
                 else if (Menu.Visibility == Visibility.Visible)
                 {
-                    Resume();
+                    GameEngine.Resume();
                     Menu.Visibility = Visibility.Hidden;
                     StopGameButton.Visibility = Visibility.Hidden;
                 }
@@ -100,7 +148,7 @@ namespace SnakeApp
         public void UnpauseGame(object sender, RoutedEventArgs e)
         {
             Menu.Visibility = Visibility.Hidden;
-            Resume();
+            GameEngine.Resume();
         }
 
         public class SnakePart
