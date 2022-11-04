@@ -113,13 +113,15 @@ public class GameEngine
             _blockGameThread.WaitOne();
             _GameThread.WaitOne(); // Check for pause
 
-            UpdateSnake(GameSnakeDirection);
-
             CheckIfAddFood();
+
+            UpdateSnake(GameSnakeDirection);
 
             CheckIfColOnSnake();
 
             CheckIfColOnFood();
+
+            CheckIfWon();
         }
 
         ResetGame(); // If snake dies!
@@ -313,7 +315,7 @@ public class GameEngine
                     AddSnakePart(); // Adds a section to the snake
                 }
             }
-
+            
             foreach (var item in TempFood)
             {
                 food.Remove(item);
@@ -321,36 +323,50 @@ public class GameEngine
         }
         if (food.Count == 0 || gameMenu.GameBonusActive && gameMenu.GameBonusAdd)
         {
-            gameMenu.GameBonusAdd = false;
-
             Random rand = new Random();
 
             Food newFood = new();
 
-            while (true) // Try to spawn food
+            int maxSpaces = GameMenu.GameSize * GameMenu.GameSize;
+            int ko = food.Count + snake.Count;
+
+            if (ko < maxSpaces)
             {
-                int rndX = rand.Next(GameMenu.GameSize); // Random X
-                int rndY = rand.Next(GameMenu.GameSize); // Random Y
-                if (!snake.Any(x => x.X == rndX && x.Y == rndY) && !food.Any(x => x.X == rndX && x.Y == rndY)) // If Random X & Y does not match any snake positions
+                gameMenu.GameBonusAdd = false;
+
+                while (true) // Try to spawn food
                 {
-                    newFood.X = rndX;
-                    newFood.Y = rndY;
-                    newFood.Active = true;
-
-                    System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate
+                    int rndX = rand.Next(GameMenu.GameSize); // Random X
+                    int rndY = rand.Next(GameMenu.GameSize); // Random Y
+                    if (!snake.Any(x => x.X == rndX && x.Y == rndY) && !food.Any(x => x.X == rndX && x.Y == rndY)) // If Random X & Y does not match any snake positions
                     {
-                        Ellipse newFoodBox = new Ellipse();
-                        newFoodBox.Fill = Brushes.Yellow;
-                        newFood.FoodBox = newFoodBox;
-                        AppWindow.SnakeGrid.Children.Add(newFoodBox);
-                    });
+                        newFood.X = rndX;
+                        newFood.Y = rndY;
+                        newFood.Active = true;
 
-                    food.Add(newFood);
+                        System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate
+                        {
+                            Ellipse newFoodBox = new Ellipse();
+                            newFoodBox.Fill = Brushes.Yellow;
+                            newFood.FoodBox = newFoodBox;
+                            AppWindow.SnakeGrid.Children.Add(newFoodBox);
+                        });
 
-                    SetPosition(newFood.FoodBox, newFood.X, newFood.Y); // Places food in the game
-                    break;
+                        food.Add(newFood);
+
+                        SetPosition(newFood.FoodBox, newFood.X, newFood.Y); // Places food in the game
+                        break;
+                    }
                 }
             }
+        }
+    }
+
+    private void CheckIfWon()
+    {
+        if (food.Count == 0 && snake.Count >= GameMenu.GameSize * GameMenu.GameSize)
+        {
+            GameActive = false;
         }
     }
 

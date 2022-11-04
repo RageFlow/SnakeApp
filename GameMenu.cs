@@ -21,7 +21,7 @@ namespace SnakeApp
 
         public void UpdateGameSettings()
         {
-            if (Int32.TryParse(GameSizeInputText, out int sizeResult) && sizeResult >= 1) // Set GameSize to user inputted size
+            if (Int32.TryParse(GameSizeInputText, out int sizeResult) && sizeResult >= 3 && sizeResult < 1000) // Set GameSize to user inputted size
             {
                 GameSize = sizeResult;
             }
@@ -31,7 +31,7 @@ namespace SnakeApp
                 AppWindow.GameSizeInput.Text = "10";
             }
 
-            if (Int32.TryParse(GameSpeedInputText, out int speedResult) && speedResult > 1) // Set GameSize to user inputted size
+            if (Int32.TryParse(GameSpeedInputText, out int speedResult) && speedResult >= 1 && speedResult < 10000) // Set GameSize to user inputted size
             {
                 GameSpeed = speedResult;
             }
@@ -41,7 +41,7 @@ namespace SnakeApp
                 AppWindow.GameSpeedInput.Text = "400";
             }
 
-            if (Int32.TryParse(GameBonusInputText, out int bonusResult) && bonusResult >= 1) // Set GameSize to user inputted size
+            if (Int32.TryParse(GameBonusInputText, out int bonusResult) && bonusResult >= 1 && bonusResult < 1000) // Set GameSize to user inputted size
             {
                 GameBonus = bonusResult;
             }
