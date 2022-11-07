@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Shapes;
+using System.Windows.Media;
 
 namespace SnakeApp
 {
@@ -14,6 +16,9 @@ namespace SnakeApp
         public static GameMenu gameMenu { get; set; } = new GameMenu();
         public static MainWindow AppWindow { get; set; } = new MainWindow();
 
+        public static Brush DefaultSnakeHeadColor = Brushes.DarkGreen;
+        public static Brush DefaultSnakeColor = Brushes.Green;
+        public static Brush DefaultFoodColor = Brushes.Yellow;
         public MainWindow()
         {
             AppWindow = this;
@@ -21,10 +26,38 @@ namespace SnakeApp
             InitializeComponent();
 
             AppWindow.StateChanged += Window_StateChanged; // Adding Window_StateChanged to the windows StateChanged event
+
+            SnakeColorComboBox.ItemsSource = new Dictionary<string, SolidColorBrush[]>()
+            {
+                {"Green", new SolidColorBrush[]{Brushes.Green, Brushes.DarkGreen} },
+                {"Blue", new SolidColorBrush[]{Brushes.Blue, Brushes.DarkBlue } },
+                {"Red", new SolidColorBrush[]{ Brushes.Red, Brushes.DarkRed } }
+            };
+
+            FoodColorComboBox.ItemsSource = new Dictionary<string, SolidColorBrush>()
+            {
+                {"Yellow", Brushes.Yellow},
+                {"Magenta", Brushes.Magenta },
+                {"Lime", Brushes.Lime }
+            };
         }
 
         private void StartGame(object sender, RoutedEventArgs e) // StartGame method called by the GameMenu Start button
         {
+            try
+            {
+                KeyValuePair<string, SolidColorBrush[]> snake = (KeyValuePair<string, SolidColorBrush[]>)SnakeColorComboBox.SelectedItem;
+                DefaultSnakeColor = snake.Value.FirstOrDefault() ?? Brushes.Green;
+                DefaultSnakeHeadColor = snake.Value.Last() ?? Brushes.Green;
+                
+                KeyValuePair<string, SolidColorBrush> food = (KeyValuePair<string, SolidColorBrush>)FoodColorComboBox.SelectedItem;
+                DefaultFoodColor = food.Value ?? Brushes.Yellow;
+            }
+            catch (Exception)
+            {
+                return;
+            }            
+
             gameEngine.StartGame();
         }
         private void StopGame(object sender, RoutedEventArgs e) // StopGame method called by the GameMenu Stop button
@@ -42,12 +75,16 @@ namespace SnakeApp
             GameSizeInputBox.Visibility = Visibility.Hidden;
             GameSpeedInputBox.Visibility = Visibility.Hidden;
             GameBonusInputBox.Visibility = Visibility.Hidden;
+            GameSnakeColorInputBox.Visibility = Visibility.Hidden;
+            GameFoodColorInputBox.Visibility = Visibility.Hidden;
         }
         public void ShowInputFields()
         {
             GameSizeInputBox.Visibility = Visibility.Visible;
             GameSpeedInputBox.Visibility = Visibility.Visible;
             GameBonusInputBox.Visibility = Visibility.Visible;
+            GameSnakeColorInputBox.Visibility = Visibility.Visible;
+            GameFoodColorInputBox.Visibility = Visibility.Visible;
         }
         public void HideStopButton()
         {
@@ -141,9 +178,9 @@ namespace SnakeApp
             e.Handled = true;
         }
 
-        public void CloseGame(object sender, RoutedEventArgs e)
+        public async void WindowCloseGame(object sender, RoutedEventArgs e) //Close window when user click "Close"
         {
-            System.Windows.Application.Current.Shutdown(); // Closing the game (Exiting)
+            await gameEngine.StopThreadsAndWait();
         }
         public void UnpauseGame(object sender, RoutedEventArgs e)
         {
@@ -164,10 +201,6 @@ namespace SnakeApp
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) //Checks if user clicks on window
         {
             DragMove(); //Used for dragging window
-        }
-        private void WindowClose(object sender, RoutedEventArgs e) //Close window when user click "Close"
-        {
-            Close(); //Closes window (Application)
         }
         private void WindowMaximize(object sender, RoutedEventArgs e) // Maximize or Normalize window when user clicks the Maximize/Normalize button
         {

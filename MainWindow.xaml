@@ -50,7 +50,7 @@
                 <RowDefinition Height="28" />
             </Grid.RowDefinitions>
 
-            <Button Name="CloseButton" Click="WindowClose" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0" Padding="0" Background="Transparent" Cursor="Hand">
+            <Button Name="CloseButton" Click="WindowCloseGame" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0" Padding="0" Background="Transparent" Cursor="Hand">
                 <Grid Width="25" Height="25" Margin="0">
                     <Rectangle Fill="White" Width="3" Height="25">
                         <Rectangle.LayoutTransform>
@@ -98,14 +98,14 @@
                     <RowDefinition Height="2*"/>
                     <RowDefinition Height="2*"/>
                     <RowDefinition Height="1*"/>
-                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="2*"/>
                 </Grid.RowDefinitions>
 
                 <Rectangle Fill="Black" Opacity="0.7" Grid.ColumnSpan="5" Grid.RowSpan="6" />
 
                 <Label Name="Highscore" Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="0" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Top" FontSize="20" Foreground="White" Margin="0,-5,0,0" />
 
-                <Label Grid.Column="1" Grid.ColumnSpan="3" Content="Foo Snake" HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" FontSize="45" Foreground="White" Margin="0,45,0,0" Grid.RowSpan="2" />
+                <Label Grid.Column="1" Grid.ColumnSpan="3" Content="Foo Snake" HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" FontSize="45" Foreground="White" Margin="0,35,0,0" Grid.RowSpan="2" />
 
                 <Button Name="StartButton" Click="StartGame" Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="3" Margin="10" >
                     <Label Content="Play" Foreground="White" FontSize="50"/>
@@ -114,37 +114,46 @@
                     <Label Content="Resume" Foreground="White" FontSize="50"/>
                 </Button>
 
-                <Button Click="CloseGame" Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="3" Margin="10">
+                <Button Click="WindowCloseGame" Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="3" Margin="10">
                     <Label Content="Exit" Foreground="White" FontSize="50"/>
                 </Button>
 
-                <Button Name="StopGameButton" Click="StopGame" Grid.Column="1" Grid.Row="4" Grid.ColumnSpan="3" Margin="10" Visibility="Hidden" >
+                <Button Name="StopGameButton" Click="StopGame" Grid.Column="1" Grid.Row="4" Grid.ColumnSpan="3" Margin="10,0,10,0" Visibility="Hidden" >
                     <Label Content="Stop Game"  Foreground="White" FontSize="20" Margin="0,-4,0,0"/>
                 </Button>
 
                 <Canvas Grid.Column="1" Grid.Row="4" Name="GameSizeInputBox" Width="90" Height="50">
                     <Label Content="Grid Size:" Margin="0,-5,10,20" Foreground="White" FontSize="20"/>
-                    <TextBox Name="GameSizeInput" TextChanged="SizeTextChanged" PreviewTextInput="NumberValidationTextBox" Text="14" Height="20" Width="30" Margin="5,30,0,0" />
+                    <TextBox Name="GameSizeInput" TextChanged="SizeTextChanged" PreviewTextInput="NumberValidationTextBox" Text="14" Height="18" Width="30" Margin="5,30,0,0" />
                     <Label Content="Blocks" Foreground="White" FontSize="15" Margin="35,25,0,0"/>
                     <Label Content="(Min: 3 - Max = 999)" Foreground="White" FontSize="8" Margin="2,45,0,0"/>
                 </Canvas>
 
                 <Canvas Grid.Column="2" Grid.Row="4" Name="GameSpeedInputBox" Width="124" Height="50">
                     <Label Content="Game Speed:" Margin="0,-5,10,20" Foreground="White" FontSize="20"/>
-                    <TextBox Name="GameSpeedInput" TextChanged="SpeedTextChanged" PreviewTextInput="NumberValidationTextBox" Text="300" Height="20" Width="40" Margin="25,30,0,0" />
+                    <TextBox Name="GameSpeedInput" TextChanged="SpeedTextChanged" PreviewTextInput="NumberValidationTextBox" Text="300" Height="18" Width="40" Margin="25,30,0,0" />
                     <Label Content="ms." Foreground="White" FontSize="15" Margin="65,25,0,0"/>
                     <Label Content="(Min: 1 - Max = 999)" Foreground="White" FontSize="8" Margin="17,45,0,0"/>
                 </Canvas>
 
                 <Canvas Grid.Column="3" Grid.Row="4" Name="GameBonusInputBox" Width="70" Height="50">
                     <Label Content="Bonus?" Margin="-2,-5,10,20" Foreground="White" FontSize="20"/>
-                    <CheckBox Name="GameBonusInputCheckbox" Margin="5,29,0,0">
+                    <CheckBox Name="GameBonusInputCheckbox" Margin="8,28.5,0,0">
                         <CheckBox.LayoutTransform>
-                            <ScaleTransform ScaleX="1.5" ScaleY="1.5" />
+                            <ScaleTransform ScaleX="1.63" ScaleY="1.62" />
                         </CheckBox.LayoutTransform>
                     </CheckBox>
-                    <TextBox Name="GameBonusInput" TextChanged="BonusTextChanged" PreviewTextInput="NumberValidationTextBox" Text="20" Height="20" Width="30" Margin="30,30,0,0" />
+                    <TextBox Name="GameBonusInput" TextChanged="BonusTextChanged" PreviewTextInput="NumberValidationTextBox" Text="20" Height="18" Width="30" Margin="32,30,0,0" />
                     <Label Content="(Min: 1 - Max: 999)" Foreground="White" FontSize="8" Margin="-4,45,0,0"/>
+                </Canvas>
+
+                <Canvas Grid.Column="1" Grid.Row="5" Name="GameSnakeColorInputBox">
+                    <Label Content="Snake Color:" Margin="5,15,0,0" Foreground="White" FontSize="20"/>
+                    <ComboBox Name="SnakeColorComboBox" Width="100" Margin="15,50,0,0" SelectedIndex="0" DisplayMemberPath="Key"/>
+                </Canvas>
+                <Canvas Grid.Column="2" Grid.Row="5" Name="GameFoodColorInputBox">
+                    <Label Content="Food Color:" Margin="9,15,0,0" Foreground="White" FontSize="20"/>
+                    <ComboBox Name="FoodColorComboBox" Width="100" Margin="15,50,0,0" SelectedIndex="0" DisplayMemberPath="Key"/>
                 </Canvas>
 
             </Grid>
@@ -199,6 +208,5 @@
 
             </Grid>
         </Border>
-        <Rectangle Visibility="Hidden" Fill="Red" Height="100" Width="100" Grid.Column="1" Grid.Row="2" />
     </Grid>
 </Window>
