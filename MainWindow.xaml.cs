@@ -10,19 +10,17 @@ namespace SnakeApp
 {
     public partial class MainWindow : Window
     {
-        public static GameEngine gameEngine { get; set; }
-        public static GameMenu gameMenu { get; set; }
-        public static MainWindow AppWindow { get; set; }
+        public static GameEngine gameEngine { get; set; } = new GameEngine();
+        public static GameMenu gameMenu { get; set; } = new GameMenu();
+        public static MainWindow AppWindow { get; set; } = new MainWindow();
 
         public MainWindow()
         {
-            gameEngine = new GameEngine();
-
-            gameMenu = new GameMenu();
-
             AppWindow = this;
 
             InitializeComponent();
+
+            AppWindow.StateChanged += Window_StateChanged;
         }
 
         private void StartGame(object sender, RoutedEventArgs e)
@@ -151,21 +149,6 @@ namespace SnakeApp
             GameEngine.Resume();
         }
 
-        public class SnakePart
-        {
-            public Canvas Part { get; set; }
-            public int X { get; set; }
-            public int Y { get; set; }
-        }
-
-        public class Food
-        {
-            public Ellipse FoodBox { get; set; }
-            public bool Active { get; set; }
-            public int X { get; set; }
-            public int Y { get; set; }
-        }
-
         public enum Direction
         {
             Up,
@@ -175,7 +158,7 @@ namespace SnakeApp
         }
 
 
-        // WPF Custom styling! Ignore
+        // WPF Custom styling! Ignore all below!
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) //Checks if user clicks on window
         {
             DragMove(); //Used for dragging window
@@ -184,13 +167,43 @@ namespace SnakeApp
         {
             Close(); //Closes window (Application)
         }
+        private void WindowMaximize(object sender, RoutedEventArgs e) //Close window when user click "Close"
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                WindowState = WindowState.Normal;
+            }
+            else
+            {
+                WindowState = WindowState.Maximized;
+            }
+        }
+        private void WindowMinimize(object sender, RoutedEventArgs e) //Close window when user click "Close"
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+
+        private void Window_StateChanged(object? sender, EventArgs e) => CheckWindowState();
+        private void CheckWindowState()
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                MaximizeButtonNormalizeShape.Visibility = Visibility.Visible;
+            }
+            else if (WindowState == WindowState.Normal)
+            {
+                MaximizeButtonNormalizeShape.Visibility = Visibility.Hidden;
+            }
+            Console.WriteLine();
+        }
 
         #region ScaleValue Depdency Property
         public static readonly DependencyProperty ScaleValueProperty = DependencyProperty.Register("ScaleValue", typeof(double), typeof(MainWindow), new UIPropertyMetadata(1.0, new PropertyChangedCallback(OnScaleValueChanged), new CoerceValueCallback(OnCoerceScaleValue)));
 
         private static object OnCoerceScaleValue(DependencyObject o, object value)
         {
-            MainWindow mainWindow = o as MainWindow;
+            MainWindow? mainWindow = o as MainWindow;
             if (mainWindow != null)
                 return mainWindow.OnCoerceScaleValue((double)value);
             else return value;
@@ -198,7 +211,7 @@ namespace SnakeApp
 
         private static void OnScaleValueChanged(DependencyObject o, DependencyPropertyChangedEventArgs e)
         {
-            MainWindow mainWindow = o as MainWindow;
+            MainWindow? mainWindow = o as MainWindow;
             if (mainWindow != null)
                 mainWindow.OnScaleValueChanged((double)e.OldValue, (double)e.NewValue);
         }

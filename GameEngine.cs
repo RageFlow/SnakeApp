@@ -10,7 +10,7 @@ using System.Windows;
 using SnakeApp;
 using System.Linq;
 
-public class GameEngine
+public class GameEngine : GameFunktions, IGameFunktions
 {
     public static readonly object DirectionLock = new object();
     private static AutoResetEvent _blockGameThread = new AutoResetEvent(true);
@@ -33,6 +33,28 @@ public class GameEngine
     {
         System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "GridLengthConverter" & "SnakeGrid" is owned by default WPF Thread
         {
+            if (snake != null && snake.Count > 0) // This section is only neccessary because of WPF's shorty Witchcraft....
+            {
+                Polygon ko = AppWindow.SnakeTail;
+                Border koParent = (Border)ko.Parent;
+
+                Grid kow = AppWindow.SnakeEyes;
+                Border kowParent = (Border)kow.Parent;
+
+                SnakePart ko3 = snake.Where(x => x.Part != null && x.Part.Uid == koParent.Uid).FirstOrDefault() ?? new SnakePart();
+                if (ko3.Part != null)
+                {
+                    ko3.Part.Child = null;
+                }
+                SnakePart ko4 = snake.Where(x => x.Part != null && x.Part.Uid == kowParent.Uid).FirstOrDefault() ?? new SnakePart();
+                if (ko4.Part != null)
+                {
+                    ko4.Part.Child = null;
+                }
+
+                AppWindow.SnakeEyeHolder.Child = AppWindow.SnakeEyes;
+                AppWindow.SnakeTailHolder.Child = AppWindow.SnakeTail;
+            }
             AppWindow.HideStopButton();
 
             gameMenu.UpdateHighscore(foodCollected);
@@ -61,8 +83,10 @@ public class GameEngine
 
             for (int i = 0; i < GameMenu.GameSize; i++)
             {
+#pragma warning disable CS8605 // Unboxing a possibly null value from WPF's "Engine".
                 AppWindow.SnakeGrid.RowDefinitions.Add(new RowDefinition() { Height = (GridLength)gridLengthConverter.ConvertFrom("*") });
                 AppWindow.SnakeGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = (GridLength)gridLengthConverter.ConvertFrom("*") });
+#pragma warning restore CS8605 // Unboxing a possibly null value from WPF's "Engine".
             }
         });
     }
@@ -89,12 +113,12 @@ public class GameEngine
         Resume(); // Starts GameTimer (Activates _GameThread which we use for pausing the game)
 
         Thread timerThread = new Thread(GameTimer);
-        Thread controllerThread = new Thread(GameController);
+        Thread controllerThread = new Thread(() => GameController());
         timerThread.Start();
         controllerThread.Start();
     }
 
-    private void GameTimer()
+    public override void GameTimer()
     {
         while (GameActive)
         {
@@ -127,7 +151,7 @@ public class GameEngine
         ResetGame(); // If snake dies!
     }
 
-    private void SetupGame() // First init of game after user pressed the Play Button
+    public override void SetupGame() // First init of game after user pressed the Play Button
     {
         int middle = GameMenu.GameSize / 2;
 
@@ -140,18 +164,33 @@ public class GameEngine
         {
             System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate
             {
-                Canvas part = new Canvas();
+                Border part = new Border();
                 //part.Name = $"snake{part.PersistId}";
                 part.Uid = Guid.NewGuid().ToString();
 
                 if (i == 0)
                 {
                     part.Background = Brushes.DarkRed;
+                    Grid HeadSection = AppWindow.SnakeEyes;
+
+                    AppWindow.SnakeEyeHolder.Child = null; // Remove Eyes from Template Holder
+
+                    part.Child = HeadSection; // Add Eyes to first Snake Part
                 }
                 else
                 {
                     part.Background = Brushes.Red;
                 }
+
+                if (i == 2)
+                {
+                    AppWindow.SnakeTailHolder.Child = null;
+                    AppWindow.SnakeTailHolder.RenderTransformOrigin = new Point(0.5, 0.5);
+                    AppWindow.SnakeTail.Fill = Brushes.Red;
+                    part.Background = Brushes.Transparent;
+                    part.Child = AppWindow.SnakeTail;
+                }
+
                 snake.Add(new SnakePart() { Part = part, X = middle, Y = middle });
                 AppWindow.SnakeGrid.Children.Add(part);
                 SetPosition(part, middle, middle);
@@ -163,15 +202,15 @@ public class GameEngine
     {
         if (snake.Count > 0)
         {
-            System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Canvas" & "SnakeGrid" is owned by default WPF Thread
+            System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Border" & "SnakeGrid" is owned by default WPF Thread
             {
                 AppWindow.ScoreBoardScore.Content = foodCollected * 1000; // Adding score to scoreboard
 
                 SnakePart temp = snake.Last();
-                Canvas part = new Canvas();
-                //part.Name = $"snake{part.PersistId}";
+                Border part = new Border();
+                part.CornerRadius = new CornerRadius(5, 5, 5, 5);
                 part.Uid = Guid.NewGuid().ToString();
-                part.Background = Brushes.Red;
+                part.Background = Brushes.Transparent;
                 AppWindow.SnakeGrid.Children.Add(part);
                 snake.Add(new SnakePart() { Part = part, X = temp.X, Y = temp.Y });
                 SetPosition(part, temp.X, temp.Y);
@@ -179,7 +218,7 @@ public class GameEngine
         }
     }
 
-    public static void SetPosition(Canvas part, int x, int y)
+    public static void SetPosition(Border part, int x, int y)
     {
         if (part != null && System.Windows.Application.Current != null)
         {
@@ -190,7 +229,7 @@ public class GameEngine
             });
         }
     }
-    public static void SetPosition(Ellipse part, int x, int y) // Overload of SetPosition(Canvas part, int x, int y)
+    public static void SetPosition(Ellipse part, int x, int y) // Overload of SetPosition(Border part, int x, int y)
     {
         if (part != null && System.Windows.Application.Current != null)
         {
@@ -207,29 +246,69 @@ public class GameEngine
         Stopwatch UpdateSnakeTimer = new();
         UpdateSnakeTimer.Start();
 
-        SnakePart tempSnakeHead = snake.FirstOrDefault();        
+        SnakePart tempSnakeHead = snake.FirstOrDefault() ?? new SnakePart();
 
-        SnakePart newSnakeHead = new();
-
-        if (tempSnakeHead != null)
+        SnakePart newSnakeHead = new(); // 
+        try
         {
-            System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Grid" is owned by default WPF Thread
+            if (tempSnakeHead.Part != null)
             {
-                tempSnakeHead.Part.Background = Brushes.Red;
+                System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Grid" is owned by default WPF Thread
+                {
+                    Grid HeadSection = AppWindow.SnakeEyes; // Snake Eyes
 
-                Canvas part = new Canvas();
-                part.Background = Brushes.DarkRed;
-                newSnakeHead = new SnakePart() { Part = part, X = tempSnakeHead.X, Y = tempSnakeHead.Y };
-                newSnakeHead.Part.Uid = Guid.NewGuid().ToString();
-                AppWindow.SnakeGrid.Children.Add(part);
-                snake.Insert(0,newSnakeHead);
-                SetPosition(newSnakeHead.Part, newSnakeHead.X, newSnakeHead.Y);
+                    RotateTransform rotateTransform1 = new RotateTransform(
+                        direction == Direction.Up ? 0 : direction == Direction.Right ? 90 : direction == Direction.Down ? 180 : 270
+                        );
+                    HeadSection.RenderTransform = rotateTransform1;
 
-                SnakePart lastSnakePart = snake.Last();
-                AppWindow.SnakeGrid.Children.Remove(lastSnakePart.Part);
-                snake.RemoveAt(snake.Count - 1);
-                Console.WriteLine();
-            });
+                    tempSnakeHead.Part.Child = null; // Remove Eyes from First snake section                    
+
+                    tempSnakeHead.Part.Background = Brushes.Red;
+
+                    Border part = new Border();
+                    part.CornerRadius = new CornerRadius(5, 5, 5, 5);
+                    part.Background = Brushes.DarkRed;
+                    newSnakeHead = new SnakePart() { Part = part, X = tempSnakeHead.X, Y = tempSnakeHead.Y };
+                    newSnakeHead.Part.Uid = Guid.NewGuid().ToString();
+
+                    newSnakeHead.Part.Child = HeadSection;
+
+
+                    AppWindow.SnakeGrid.Children.Add(part);
+                    snake.Insert(0, newSnakeHead);
+                    SetPosition(newSnakeHead.Part, newSnakeHead.X, newSnakeHead.Y);
+
+                    SnakePart lastSnakePart = snake.Last() ?? new SnakePart();
+                    if (lastSnakePart.Part != null)
+                    {
+                        lastSnakePart.Part.Child = null;
+                        AppWindow.SnakeGrid.Children.Remove(lastSnakePart.Part);
+                        snake.RemoveAt(snake.Count - 1);
+
+                        SnakePart newLastSnake = snake.Last() ?? new SnakePart();
+
+                        if (newLastSnake.Part != null)
+                        {
+                            newLastSnake.Part.Background = Brushes.Transparent;
+                            newLastSnake.Part.Child = AppWindow.SnakeTail;
+
+                            SnakePart secondLastSnake = snake[snake.Count() - 2];
+                            if (secondLastSnake != null)
+                            {
+                                RotateTransform rotateTransformLast = new RotateTransform(
+                                    secondLastSnake.Y < newLastSnake.Y ? 90 : secondLastSnake.X > newLastSnake.X ? 180 : secondLastSnake.Y > newLastSnake.Y ? 270 : 0
+                                    );
+                                AppWindow.SnakeTail.RenderTransform = rotateTransformLast;
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        catch (Exception)
+        {
+            return;
         }
 
         if (tempSnakeHead != null)
@@ -276,7 +355,10 @@ public class GameEngine
                 newSnakeHead.X = GameMenu.GameSize - 1;  // X is ZeroIndex (-1)
             }
 
-            SetPosition(newSnakeHead.Part, newSnakeHead.X, newSnakeHead.Y);
+            if (newSnakeHead.Part != null)
+            {
+                SetPosition(newSnakeHead.Part, newSnakeHead.X, newSnakeHead.Y);
+            }
         }
 
         UpdateSnakeTimer.Stop();
@@ -286,7 +368,7 @@ public class GameEngine
     {
         if (snake.Count > 3)
         {
-            var tempSnake = snake.FirstOrDefault();
+            var tempSnake = snake.FirstOrDefault() ?? new SnakePart();
             if (snake.Any(x => x != snake.FirstOrDefault() && x.X == tempSnake.X && x.Y == tempSnake.Y))
             {
                 SnakeAlive = false;
@@ -298,7 +380,7 @@ public class GameEngine
     {
         if (snake.Count > 0)
         {
-            var tempSnake = snake.FirstOrDefault();
+            var tempSnake = snake.FirstOrDefault() ?? new SnakePart();
 
             List<Food> TempFood = new();
             foreach (var item in food)
@@ -315,7 +397,7 @@ public class GameEngine
                     AddSnakePart(); // Adds a section to the snake
                 }
             }
-            
+
             foreach (var item in TempFood)
             {
                 food.Remove(item);
@@ -354,7 +436,10 @@ public class GameEngine
 
                         food.Add(newFood);
 
-                        SetPosition(newFood.FoodBox, newFood.X, newFood.Y); // Places food in the game
+                        if (newFood.FoodBox != null)
+                        {
+                            SetPosition(newFood.FoodBox, newFood.X, newFood.Y); // Places food in the game
+                        }
                         break;
                     }
                 }
@@ -381,5 +466,38 @@ public class GameEngine
         {
             gameMenu.GameBonusCounter++;
         }
+    }
+}
+
+public class SnakePart
+{
+    public Border? Part { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
+public class Food
+{
+    public Ellipse? FoodBox { get; set; }
+    public bool Active { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
+public interface IGameFunktions{
+    public void ResetGame();
+    public void StopGame();
+    public void StartGame();
+}
+
+public abstract class GameFunktions
+{
+    public virtual void SetupGame()
+    {
+        Console.WriteLine("No game setup");
+    }
+    public virtual void GameTimer()
+    {
+        Console.WriteLine("No game timer setup");
     }
 }
