@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="MainWindow"
         Name="SnakeMainWindow"
-        Height="470" Width="410"
+        Height="463" Width="410"
         
         PreviewKeyDown="Window_PreviewKeyDown"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
@@ -30,7 +30,7 @@
             <ColumnDefinition Width="10" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="35"/>
+            <RowDefinition Height="28"/>
             <RowDefinition Height="10"/>
             <RowDefinition Height="1*"/>
             <RowDefinition Height="10"/>
@@ -45,12 +45,12 @@
         </Grid.LayoutTransform>
 
         <!-- START Grid for Window Minimize, Maximize/Normalize and Close buttons -->
-        <Grid Grid.ColumnSpan="3" Grid.Row="0" Height="35" Background="#1e1e1e">
+        <Grid Grid.ColumnSpan="3" Grid.Row="0" Height="28" Background="#1e1e1e">
             <Grid.RowDefinitions>
-                <RowDefinition Height="35" />
+                <RowDefinition Height="28" />
             </Grid.RowDefinitions>
 
-            <Button Name="CloseButton" Click="WindowClose" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Padding="0" Background="#2d2d30" Cursor="Hand">
+            <Button Name="CloseButton" Click="WindowClose" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0" Padding="0" Background="Transparent" Cursor="Hand">
                 <Grid Width="25" Height="25" Margin="0">
                     <Rectangle Fill="White" Width="3" Height="25">
                         <Rectangle.LayoutTransform>
@@ -65,17 +65,17 @@
                 </Grid>
             </Button>
 
-            <Button Name="MaximizeButton" Click="WindowMaximize" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,33,5" Padding="0" Background="#2d2d30" Cursor="Hand">
+            <Button Name="MaximizeButton" Click="WindowMaximize" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,28,0" Padding="0" Background="Transparent" Cursor="Hand">
                 <Grid Width="25" Height="25" Margin="0">
                     <Rectangle Fill="White" Width="20" Height="20"/>
                     <Rectangle Fill="#1e1e1e" Width="15" Height="15"/>
 
-                    <Rectangle x:Name="MaximizeButtonNormalizeShape" Visibility="Hidden" Fill="White" Width="13" Height="13" Margin="-7,7,0,0"/>
+                    <Rectangle x:Name="MaximizeButtonNormalizeShape" Visibility="Hidden" Fill="White" Width="13" Height="13" Margin="-6,6,0,0"/>
                     <Rectangle Fill="#1e1e1e" Width="8" Height="8" Margin="-6,6,0,0"/>
                 </Grid>
             </Button>
 
-            <Button Name="MinimizeButton" Click="WindowMinimize" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,61,5" Padding="0" Background="#2d2d30" Cursor="Hand">
+            <Button Name="MinimizeButton" Click="WindowMinimize" Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,56,0" Padding="0" Background="Transparent" Cursor="Hand">
                 <Grid Width="25" Height="25" Margin="0">
                     <Rectangle Fill="White" Width="20" Height="3" VerticalAlignment="Bottom" Margin="2.5"/>
                 </Grid>
