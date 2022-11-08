@@ -14,22 +14,22 @@ using System.Threading.Tasks;
 public class GameEngine : GameFunctions, IGameFunctions
 {
     public static readonly object DirectionLock = new object();
-    private static AutoResetEvent _blockGameThread = new AutoResetEvent(true);
-    private static ManualResetEvent _GameThread = new ManualResetEvent(false);
+    private static AutoResetEvent _GameControllerTrigger = new AutoResetEvent(true);
+    private static ManualResetEvent _GamePause = new ManualResetEvent(false);
 
-    private List<Food> food = new();
-    private List<SnakePart> snake = new List<SnakePart>();
+    private List<Food> GameFood = new();
+    private List<SnakePart> GameSnake = new List<SnakePart>();
     private int foodCollected { get; set; }
     public int FoodCollected
     {
         get { return foodCollected; }
     }
 
-    public static Direction GameSnakeDirection = Direction.Right;
-    public static Direction IgnoreDirection = Direction.Left;
+    public static Direction GameSnakeDirection { get; set; } = Direction.Right;
+    public static Direction GameSnakeIgnoreDirection { get; set; } = Direction.Left;
 
-    bool SnakeAlive = false;
-    public bool GameActive = false;
+    bool SnakeAlive { get; set; } = false;
+    public bool GameActive { get; set; } = false;
 
     public async Task StopGameProgram()
     {
@@ -37,14 +37,14 @@ public class GameEngine : GameFunctions, IGameFunctions
         Environment.Exit(0);
     }
 
-    public static void Resume() => _GameThread.Set();
-    public static void Pause() => _GameThread.Reset();
+    public static void Resume() => _GamePause.Set();
+    public static void Pause() => _GamePause.Reset();
 
     public void ResetGame()
     {
         System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "GridLengthConverter" & "SnakeGrid" is owned by default WPF Thread
         {
-            if (snake != null && snake.Count > 0) // This section is only neccessary because of WPF's shorty Witchcraft....
+            if (GameSnake != null && GameSnake.Count > 0) // This section is only neccessary because of WPF's shorty Witchcraft....
             {
                 Polygon snakeTail = AppWindow.SnakeTail;
                 Border snakeTailParent = (Border)snakeTail.Parent;
@@ -52,12 +52,12 @@ public class GameEngine : GameFunctions, IGameFunctions
                 Grid snakeEyes = AppWindow.SnakeEyes;
                 Border snakeEyesParent = (Border)snakeEyes.Parent;
 
-                SnakePart ko3 = snake.Where(x => x.Part != null && x.Part.Uid == snakeTailParent.Uid).FirstOrDefault() ?? new SnakePart();
+                SnakePart ko3 = GameSnake.Where(x => x.Part != null && x.Part.Uid == snakeTailParent.Uid).FirstOrDefault() ?? new SnakePart();
                 if (ko3.Part != null)
                 {
                     ko3.Part.Child = null; // Removing dynamic UI Snake tail element from current snake tail parent
                 }
-                SnakePart ko4 = snake.Where(x => x.Part != null && x.Part.Uid == snakeEyesParent.Uid).FirstOrDefault() ?? new SnakePart();
+                SnakePart ko4 = GameSnake.Where(x => x.Part != null && x.Part.Uid == snakeEyesParent.Uid).FirstOrDefault() ?? new SnakePart();
                 if (ko4.Part != null)
                 {
                     ko4.Part.Child = null;// Removing dynamic UI Snake eye element from current snake eye parent
@@ -69,7 +69,7 @@ public class GameEngine : GameFunctions, IGameFunctions
 
             AppWindow.HideStopButton();
 
-            gameMenu.UpdateHighscore(foodCollected);
+            SnakeGameMenu.UpdateHighscore(foodCollected);
 
             // Shows input fields
             AppWindow.ShowInputFields();
@@ -80,16 +80,16 @@ public class GameEngine : GameFunctions, IGameFunctions
             // Resetting props
             AppWindow.ClearGameArea();
 
-            food = new();
-            snake = new();
+            GameFood = new();
+            GameSnake = new();
             foodCollected = 0;
             GameSnakeDirection = Direction.Right;
-            IgnoreDirection = Direction.Left;
+            GameSnakeIgnoreDirection = Direction.Left;
             SnakeAlive = false;
             GameActive = false;
             //Resetting props
 
-            gameMenu.UpdateGameSettings();
+            SnakeGameMenu.UpdateGameSettings();
 
             GridLengthConverter gridLengthConverter = new GridLengthConverter(); // WPF grid converter/creator
             // Adding grid section to the UI based on how big the user set the field to be
@@ -141,9 +141,9 @@ public class GameEngine : GameFunctions, IGameFunctions
     {
         while (GameActive)
         {
-            _GameThread.WaitOne(); // Check for pause
+            _GamePause.WaitOne(); // Check for pause
             Thread.Sleep(GameMenu.GameSpeed); // Wait amount set by user (Game Speed)
-            _blockGameThread.Set(); // Tell GameController event to fire (Do one round of GameControl)
+            _GameControllerTrigger.Set(); // Tell GameController event to fire (Do one round of GameControl)
         }
     }
 
@@ -153,8 +153,8 @@ public class GameEngine : GameFunctions, IGameFunctions
 
         while (SnakeAlive)
         {
-            _blockGameThread.WaitOne();
-            _GameThread.WaitOne(); // Check for pause
+            _GameControllerTrigger.WaitOne();
+            _GamePause.WaitOne(); // Check for pause
 
             if (!GameActive) // Check if Game is still active (This check is for Exiting the Game/Program)
             {
@@ -216,29 +216,31 @@ public class GameEngine : GameFunctions, IGameFunctions
                     part.Child = AppWindow.SnakeTail; // Adding snake tail to snake part (Last snake part in the chain)
                 }
 
-                snake.Add(new SnakePart() { Part = part, X = middle, Y = middle }); // Adding snakepart to snake list
+                GameSnake.Add(new SnakePart() { Part = part, X = middle, Y = middle }); // Adding snakepart to snake list
                 AppWindow.SnakeGrid.Children.Add(part); // Adding snake part to UI grid
                 SetPosition(part, middle, middle); // Setting snake part grid position
             });
         }
+
+        base.SetupGame();
     }
 
     public void AddSnakePart()
     {
-        if (snake != null && snake.Count > 0) // Check if snake is not null and that it has been activated (Has more than 1 item) 
+        if (GameSnake != null && GameSnake.Count > 0) // Check if snake is not null and that it has been activated (Has more than 1 item) 
         {
             System.Windows.Application.Current.Dispatcher.Invoke((Action)delegate // "Border" & "SnakeGrid" is owned by default WPF Thread
             {
                 AppWindow.ScoreBoardScore.Content = FoodCollected * 1000; // Adding score to scoreboard form FoodCollected interface Get Prop
 
-                SnakePart temp = snake.Last(); // Get last snake part from snake list
+                SnakePart temp = GameSnake.Last(); // Get last snake part from snake list
                 Border part = new Border(); // Make new Border (UI Square of snake)
                 part.CornerRadius = new CornerRadius(5, 5, 5, 5);
                 part.Uid = Guid.NewGuid().ToString(); // Random new Uid so we can change it in the UI through the snake part from the list
                 part.Background = Brushes.Transparent;
 
                 AppWindow.SnakeGrid.Children.Add(part); // Adding snake part to UI Grid
-                snake.Add(new SnakePart() { Part = part, X = temp.X, Y = temp.Y }); // Adding snake part to snake list
+                GameSnake.Add(new SnakePart() { Part = part, X = temp.X, Y = temp.Y }); // Adding snake part to snake list
                 SetPosition(part, temp.X, temp.Y); // Set snake part grid position int the UI based on its coordinates (X & Y)
             });
         }
@@ -272,7 +274,7 @@ public class GameEngine : GameFunctions, IGameFunctions
         Stopwatch UpdateSnakeTimer = new();
         UpdateSnakeTimer.Start();
 
-        SnakePart tempSnakeHead = snake.FirstOrDefault() ?? new SnakePart(); // At this time snake head
+        SnakePart tempSnakeHead = GameSnake.FirstOrDefault() ?? new SnakePart(); // At this time snake head
         SnakePart newSnakeHead = new(); // New snake head after snake has moved
         try
         {
@@ -301,24 +303,24 @@ public class GameEngine : GameFunctions, IGameFunctions
 
 
                     AppWindow.SnakeGrid.Children.Add(part); // Adding new snake head to UI Grid
-                    snake.Insert(0, newSnakeHead); // Adding new snake head to the start of the snake list
+                    GameSnake.Insert(0, newSnakeHead); // Adding new snake head to the start of the snake list
                     SetPosition(newSnakeHead.Part, newSnakeHead.X, newSnakeHead.Y); // Set new snake head grid position
 
-                    SnakePart lastSnakePart = snake.Last() ?? new SnakePart(); // Current Snake tail part
+                    SnakePart lastSnakePart = GameSnake.Last() ?? new SnakePart(); // Current Snake tail part
                     if (lastSnakePart.Part != null) // Code error-checking
                     {
                         lastSnakePart.Part.Child = null; // Removing snake tail polygon from last snake part
                         AppWindow.SnakeGrid.Children.Remove(lastSnakePart.Part); // Removing last snake part from UI Grid
-                        snake.RemoveAt(snake.Count - 1); // Removing last elemt in Snake list (now old snake tail part)
+                        GameSnake.RemoveAt(GameSnake.Count - 1); // Removing last elemt in Snake list (now old snake tail part)
 
-                        SnakePart newLastSnake = snake.Last() ?? new SnakePart(); // Get new snake tail part
+                        SnakePart newLastSnake = GameSnake.Last() ?? new SnakePart(); // Get new snake tail part
 
                         if (newLastSnake.Part != null) // Code error-checking
                         {
                             newLastSnake.Part.Background = Brushes.Transparent;
                             newLastSnake.Part.Child = AppWindow.SnakeTail; // Adding snake tail polygon to the last snake part
 
-                            SnakePart secondLastSnake = snake[snake.Count() - 2]; // Getting 2nd last snake part to check snake tail direction
+                            SnakePart secondLastSnake = GameSnake[GameSnake.Count() - 2]; // Getting 2nd last snake part to check snake tail direction
                             if (secondLastSnake != null) // Code error-checking
                             {
                                 RotateTransform rotateTransformLast = new RotateTransform( // Snake part UI Rotation property
@@ -344,22 +346,22 @@ public class GameEngine : GameFunctions, IGameFunctions
                 if (direction == Direction.Up)
                 {
                     newSnakeHead.Y = tempSnakeHead.Y - 1; // If snake goes UP
-                    IgnoreDirection = Direction.Down;
+                    GameSnakeIgnoreDirection = Direction.Down;
                 }
                 else if (direction == Direction.Right)
                 {
                     newSnakeHead.X = tempSnakeHead.X + 1; // If snake goes RIGHT
-                    IgnoreDirection = Direction.Left;
+                    GameSnakeIgnoreDirection = Direction.Left;
                 }
                 if (direction == Direction.Down)
                 {
                     newSnakeHead.Y = tempSnakeHead.Y + 1; // If snake goes DOWN
-                    IgnoreDirection = Direction.Up;
+                    GameSnakeIgnoreDirection = Direction.Up;
                 }
                 if (direction == Direction.Left)
                 {
                     newSnakeHead.X = tempSnakeHead.X - 1; // If snake goes LEFT
-                    IgnoreDirection = Direction.Right;
+                    GameSnakeIgnoreDirection = Direction.Right;
                 }
             }
 
@@ -392,10 +394,10 @@ public class GameEngine : GameFunctions, IGameFunctions
 
     public void CheckIfColOnSnake()
     {
-        if (snake.Count > 3) // Check if snake is longer than start length (Start length is 3, Head, normal and tail section)
+        if (GameSnake.Count > 3) // Check if snake is longer than start length (Start length is 3, Head, normal and tail section)
         {
-            var tempSnake = snake.FirstOrDefault() ?? new SnakePart(); // Get snake head part
-            if (snake.Any(x => x != snake.FirstOrDefault() && x.X == tempSnake.X && x.Y == tempSnake.Y)) // Check if head is colliding with any snake pieces
+            var tempSnake = GameSnake.FirstOrDefault() ?? new SnakePart(); // Get snake head part
+            if (GameSnake.Any(x => x != GameSnake.FirstOrDefault() && x.X == tempSnake.X && x.Y == tempSnake.Y)) // Check if head is colliding with any snake pieces
             {
                 SnakeAlive = false; // Set SnakeAlive to false since the snake would be dead
             }
@@ -404,12 +406,12 @@ public class GameEngine : GameFunctions, IGameFunctions
 
     public void CheckIfColOnFood()
     {
-        if (snake != null && snake.Count > 0) // Check if snake is not null and that it has been activated (Has more than 1 item) 
+        if (GameSnake != null && GameSnake.Count > 0) // Check if snake is not null and that it has been activated (Has more than 1 item) 
         {
-            var tempSnake = snake.FirstOrDefault() ?? new SnakePart(); // Get snake Head part
+            var tempSnake = GameSnake.FirstOrDefault() ?? new SnakePart(); // Get snake Head part
 
             List<Food> TempFood = new(); // Temp food list
-            foreach (var item in food)
+            foreach (var item in GameFood)
             {
                 if (tempSnake.X == item.X && tempSnake.Y == item.Y) // Check if snake head is on food (Colliding)
                 {
@@ -427,27 +429,27 @@ public class GameEngine : GameFunctions, IGameFunctions
             // Remove all the food the snake has collided with (Should only be 1, but this is done because we can't remove it while iterating over the list above)
             foreach (var item in TempFood)
             {
-                food.Remove(item);
+                GameFood.Remove(item);
             }
         }
-        if (food.Count == 0 && snake != null || gameMenu.GameBonusActive && gameMenu.GameBonusAdd && snake != null) // Check if there is no active food on the game board, or if the GameBonus wants us to add food
+        if (GameFood.Count == 0 && GameSnake != null || SnakeGameMenu.GameBonusActive && SnakeGameMenu.GameBonusAdd && GameSnake != null) // Check if there is no active food on the game board, or if the GameBonus wants us to add food
         {
             Random rand = new Random(); // New random
 
             Food newFood = new(); // New food
 
             int maxSpaces = GameMenu.GameSize * GameMenu.GameSize; // Max game UI size, set by GameMenu's "GameSize"
-            int totalSquaresUsed = food.Count + snake.Count; // Total squares taken up by snake and food on the UI Grid
+            int totalSquaresUsed = GameFood.Count + GameSnake.Count; // Total squares taken up by snake and food on the UI Grid
 
             if (totalSquaresUsed < maxSpaces) // Check if there is room for more food
             {
-                gameMenu.GameBonusAdd = false; // Resetting the GameBonus add bool
+                SnakeGameMenu.GameBonusAdd = false; // Resetting the GameBonus add bool
 
                 while (true) // Try to spawn food (This is a bit ugly, but shows while loop running until it succeeds)
                 {
                     int rndX = rand.Next(GameMenu.GameSize); // Random X
                     int rndY = rand.Next(GameMenu.GameSize); // Random Y
-                    if (!snake.Any(x => x.X == rndX && x.Y == rndY) && !food.Any(x => x.X == rndX && x.Y == rndY)) // If Random X & Y does not match any snake or food positions
+                    if (!GameSnake.Any(x => x.X == rndX && x.Y == rndY) && !GameFood.Any(x => x.X == rndX && x.Y == rndY)) // If Random X & Y does not match any snake or food positions
                     {
                         newFood.X = rndX; // Setting new food's X
                         newFood.Y = rndY; // Setting new food's Y
@@ -461,7 +463,7 @@ public class GameEngine : GameFunctions, IGameFunctions
                             AppWindow.SnakeGrid.Children.Add(newFoodBox); // Adding new food to UI grid
                         });
 
-                        food.Add(newFood); // Adding food to our food list
+                        GameFood.Add(newFood); // Adding food to our food list
 
                         if (newFood.FoodBox != null) // Checking if the UI element was created and added to the food
                         {
@@ -478,7 +480,7 @@ public class GameEngine : GameFunctions, IGameFunctions
     {
         try
         {
-            if (food.Count == 0 && snake.Count >= GameMenu.GameSize * GameMenu.GameSize) // Check if snake is taking up the entire play area (All grid positions)
+            if (GameFood.Count == 0 && GameSnake.Count >= GameMenu.GameSize * GameMenu.GameSize) // Check if snake is taking up the entire play area (All grid positions)
             {
                 throw new SnakeException("Game was won!"); // Emulating random exception (Even though it only fires when a player wins a game)
             }
@@ -494,14 +496,14 @@ public class GameEngine : GameFunctions, IGameFunctions
     public void CheckIfAddFood()
     {
         // This section is only for the Bonus mechanism of the game
-        if (GameActive && gameMenu.GameBonusCounter >= GameMenu.GameBonus) // Check if gamebonus is active and the Bonus timer has reached user input of amount
+        if (GameActive && SnakeGameMenu.GameBonusCounter >= GameMenu.GameBonus) // Check if gamebonus is active and the Bonus timer has reached user input of amount
         {
-            gameMenu.GameBonusAdd = true; // Set to true so the game knows it should add a food piece
-            gameMenu.GameBonusCounter = 0; // Resetting GameBonusCounter
+            SnakeGameMenu.GameBonusAdd = true; // Set to true so the game knows it should add a food piece
+            SnakeGameMenu.GameBonusCounter = 0; // Resetting GameBonusCounter
         }
         if (GameActive) // Check if GameBonus is set to active
         {
-            gameMenu.GameBonusCounter++; // Increment bonus counter
+            SnakeGameMenu.GameBonusCounter++; // Increment bonus counter
         }
     }
 }
@@ -532,10 +534,17 @@ public abstract class GameFunctions
 {
     public virtual void SetupGame()
     {
-        Console.WriteLine("No game setup");
+        Console.WriteLine("Game is setup");
     }
     public virtual void GameTimer()
     {
         Console.WriteLine("No game timer setup");
+    }
+}
+
+public class SnakeException : Exception
+{
+    public SnakeException(string message) : base(message)
+    {
     }
 }

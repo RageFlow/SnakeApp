@@ -12,8 +12,8 @@ namespace SnakeApp
 {
     public partial class MainWindow : Window
     {
-        public static GameEngine gameEngine { get; set; } = new GameEngine();
-        public static GameMenu gameMenu { get; set; } = new GameMenu();
+        public static GameEngine SnakeGameEngine { get; set; } = new GameEngine();
+        public static GameMenu SnakeGameMenu { get; set; } = new GameMenu();
         public static MainWindow AppWindow { get; set; } = new MainWindow();
 
         public static Brush DefaultSnakeHeadColor = Brushes.DarkGreen;
@@ -58,11 +58,11 @@ namespace SnakeApp
                 return;
             }
 
-            gameEngine.StartGame();
+            SnakeGameEngine.StartGame();
         }
         private void StopGame(object sender, RoutedEventArgs e) // StopGame method called by the GameMenu Stop button
         {
-            gameEngine.StopGame();
+            SnakeGameEngine.StopGame();
         }
 
         // Methods for hiding and showing GameMenu UI buttons and elements
@@ -111,15 +111,15 @@ namespace SnakeApp
         }
         private void SpeedTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method from UI (MainWindow.xaml file).
         {
-            gameMenu.GameSpeedInputText = GameSpeedInput.Text;
+            SnakeGameMenu.GameSpeedInputText = GameSpeedInput.Text;
         }
         private void SizeTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method from UI (MainWindow.xaml file).
         {
-            gameMenu.GameSizeInputText = GameSizeInput.Text;
+            SnakeGameMenu.GameSizeInputText = GameSizeInput.Text;
         }
         private void BonusTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method from UI (MainWindow.xaml file).
         {
-            gameMenu.GameBonusInputText = GameBonusInput.Text;
+            SnakeGameMenu.GameBonusInputText = GameBonusInput.Text;
         }
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e) // KeyDown event from UI (MainWindow.xaml file), so we can have game input through the users keyboard.
@@ -133,19 +133,19 @@ namespace SnakeApp
             if (Monitor.TryEnter(GameEngine.DirectionLock)) // Check if we can access the DirectionLock though the TryEnter.
             {
                 // Set the Direction the snake should take in the new Game Tick (Each time our Timer thread is through a cycle)
-                if (e.Key == Key.Up && GameEngine.IgnoreDirection != Direction.Up)
+                if (e.Key == Key.Up && GameEngine.GameSnakeIgnoreDirection != Direction.Up)
                 {
                     GameEngine.GameSnakeDirection = Direction.Up;
                 }
-                else if (e.Key == Key.Right && GameEngine.IgnoreDirection != Direction.Right)
+                else if (e.Key == Key.Right && GameEngine.GameSnakeIgnoreDirection != Direction.Right)
                 {
                     GameEngine.GameSnakeDirection = Direction.Right;
                 }
-                else if (e.Key == Key.Down && GameEngine.IgnoreDirection != Direction.Down)
+                else if (e.Key == Key.Down && GameEngine.GameSnakeIgnoreDirection != Direction.Down)
                 {
                     GameEngine.GameSnakeDirection = Direction.Down;
                 }
-                else if (e.Key == Key.Left && GameEngine.IgnoreDirection != Direction.Left)
+                else if (e.Key == Key.Left && GameEngine.GameSnakeIgnoreDirection != Direction.Left)
                 {
                     GameEngine.GameSnakeDirection = Direction.Left;
                 }
@@ -153,7 +153,7 @@ namespace SnakeApp
                 Monitor.Exit(GameEngine.DirectionLock);
             }
 
-            if (e.Key == Key.Escape && gameEngine.GameActive) // If we want to pause the game with the Escape key (But only if the game is running)
+            if (e.Key == Key.Escape && SnakeGameEngine.GameActive) // If we want to pause the game with the Escape key (But only if the game is running)
             {
                 if (Menu.Visibility == Visibility.Hidden) // If menu is hidden then show the menu and pause the game
                 {
@@ -180,7 +180,7 @@ namespace SnakeApp
 
         public async void WindowCloseGame(object sender, RoutedEventArgs e) //Close window when user click "Close"
         {
-            await gameEngine.StopGameProgram();
+            await SnakeGameEngine.StopGameProgram();
         }
         public void UnpauseGame(object sender, RoutedEventArgs e)
         {
@@ -312,12 +312,5 @@ namespace SnakeApp
         private static float DefaultWindowHeight { get; set; } = 0f;
         private static float DefaultWindowWidth { get; set; } = 0f;
         #endregion
-    }
-
-    public class SnakeException : Exception
-    {
-        public SnakeException(string message) : base(message)
-        {
-        }
     }
 }

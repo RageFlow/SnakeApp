@@ -63,10 +63,10 @@ namespace SnakeApp
 
         public void UpdateHighscore(int score)
         {
-            Highscore = score > gameMenu.Highscore ? score : gameMenu.Highscore;
-            if (gameMenu.Highscore > 0)
+            Highscore = score > SnakeGameMenu.Highscore ? score : SnakeGameMenu.Highscore;
+            if (SnakeGameMenu.Highscore > 0)
             {
-                AppWindow.Highscore.Content = $"Highscore: {gameMenu.Highscore * 1000}";
+                AppWindow.Highscore.Content = $"Highscore: {SnakeGameMenu.Highscore * 1000}";
             }
             else
             {
