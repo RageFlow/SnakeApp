@@ -31,7 +31,7 @@ public class GameEngine : GameFunctions, IGameFunctions
     bool SnakeAlive = false;
     public bool GameActive = false;
 
-    public async Task StopThreadsAndWait()
+    public async Task StopGameProgram()
     {
         await Task.CompletedTask;
         Environment.Exit(0);
@@ -91,12 +91,16 @@ public class GameEngine : GameFunctions, IGameFunctions
 
             gameMenu.UpdateGameSettings();
 
-            GridLengthConverter gridLengthConverter = new GridLengthConverter();
-
+            GridLengthConverter gridLengthConverter = new GridLengthConverter(); // WPF grid converter/creator
+            // Adding grid section to the UI based on how big the user set the field to be
             for (int i = 0; i < GameMenu.GameSize; i++)
             {
-                AppWindow.SnakeGrid.RowDefinitions.Add(new RowDefinition() { Height = (GridLength)gridLengthConverter.ConvertFrom("*") });
-                AppWindow.SnakeGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = (GridLength)gridLengthConverter.ConvertFrom("*") });
+                var gridlength = gridLengthConverter.ConvertFrom("*"); // New Gridlength
+                if (gridlength != null)
+                {
+                    AppWindow.SnakeGrid.RowDefinitions.Add(new RowDefinition() { Height = (GridLength)gridlength }); // Adding grid row to UI
+                    AppWindow.SnakeGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = (GridLength)gridlength }); // Adding grid column to UI
+                }
 
             }
         });
@@ -143,7 +147,7 @@ public class GameEngine : GameFunctions, IGameFunctions
         }
     }
 
-    private void GameController()
+    private async void GameController()
     {
         SetupGame(); // Game Setup
 
@@ -165,10 +169,10 @@ public class GameEngine : GameFunctions, IGameFunctions
 
             CheckIfColOnFood();
 
-            CheckIfWon();
+            await CheckIfWon();
         }
 
-        ResetGame(); // If snake dies!
+        ResetGame(); // When snake dies!
     }
 
     public override void SetupGame() // First init of game after user pressed the Play Button
@@ -470,12 +474,21 @@ public class GameEngine : GameFunctions, IGameFunctions
         }
     }
 
-    private void CheckIfWon()
+    private async Task CheckIfWon()
     {
-        if (food.Count == 0 && snake.Count >= GameMenu.GameSize * GameMenu.GameSize) // Check if snake is taking up the entire play area (All grid positions)
+        try
+        {
+            if (food.Count == 0 && snake.Count >= GameMenu.GameSize * GameMenu.GameSize) // Check if snake is taking up the entire play area (All grid positions)
+            {
+                throw new SnakeException("Game was won!"); // Emulating random exception (Even though it only fires when a player wins a game)
+            }
+        }
+        catch (SnakeException)
         {
             GameActive = false; // Setting the GameActive to false, so our Threads can know that the game has ended
-        }
+        }        
+
+        await Task.CompletedTask;
     }
 
     public void CheckIfAddFood()

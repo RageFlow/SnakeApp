@@ -49,14 +49,14 @@ namespace SnakeApp
                 KeyValuePair<string, SolidColorBrush[]> snake = (KeyValuePair<string, SolidColorBrush[]>)SnakeColorComboBox.SelectedItem;
                 DefaultSnakeColor = snake.Value.FirstOrDefault() ?? Brushes.Green;
                 DefaultSnakeHeadColor = snake.Value.Last() ?? Brushes.Green;
-                
+
                 KeyValuePair<string, SolidColorBrush> food = (KeyValuePair<string, SolidColorBrush>)FoodColorComboBox.SelectedItem;
                 DefaultFoodColor = food.Value ?? Brushes.Yellow;
             }
             catch (Exception)
             {
                 return;
-            }            
+            }
 
             gameEngine.StartGame();
         }
@@ -180,7 +180,7 @@ namespace SnakeApp
 
         public async void WindowCloseGame(object sender, RoutedEventArgs e) //Close window when user click "Close"
         {
-            await gameEngine.StopThreadsAndWait();
+            await gameEngine.StopGameProgram();
         }
         public void UnpauseGame(object sender, RoutedEventArgs e)
         {
@@ -195,7 +195,6 @@ namespace SnakeApp
             Down,
             Left
         }
-
 
         // WPF Custom styling!
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) //Checks if user clicks on window
@@ -311,7 +310,14 @@ namespace SnakeApp
         }
 
         private static float DefaultWindowHeight { get; set; } = 0f;
-        private static float DefaultWindowWidth {get;set; } = 0f;
+        private static float DefaultWindowWidth { get; set; } = 0f;
         #endregion
+    }
+
+    public class SnakeException : Exception
+    {
+        public SnakeException(string message) : base(message)
+        {
+        }
     }
 }
