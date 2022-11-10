@@ -14,6 +14,8 @@ using System.Threading.Tasks;
 public class GameEngine : GameFunctions, IGameFunctions
 {
     public static readonly object DirectionLock = new object();
+    public static readonly object GameLock = new object();
+
     private static AutoResetEvent _GameControllerTrigger = new AutoResetEvent(true);
     private static ManualResetEvent _GamePause = new ManualResetEvent(false);
 
@@ -70,6 +72,9 @@ public class GameEngine : GameFunctions, IGameFunctions
             AppWindow.HideStopButton();
 
             SnakeGameMenu.UpdateHighscore(foodCollected);
+            
+            // Hides Stop button
+            AppWindow.HideStopButton();
 
             // Shows input fields
             AppWindow.ShowInputFields();
@@ -108,14 +113,8 @@ public class GameEngine : GameFunctions, IGameFunctions
 
     public void StopGame()
     {
-        SnakeAlive = false;
-        GameActive = false;
-        ResetGame(); // Reset game for new run
+        SnakeAlive = false; // Tells the GameController that the snake should no longer be active/alive
         Resume(); // Starts GameTimer (Activates _GameThread which we use for pausing the game)
-
-        AppWindow.HideStopButton();
-
-        AppWindow.ShowInputFields();
     }
 
     public void StartGame()
@@ -137,13 +136,28 @@ public class GameEngine : GameFunctions, IGameFunctions
         controllerThread.Start();
     }
 
+    private int CurrentThread { get; set; } = 0;
+
     public override void GameTimer()
     {
-        while (GameActive)
+        while (GameActive) // Isolated Thread to prevent Thread race or locks
         {
-            _GamePause.WaitOne(); // Check for pause
-            Thread.Sleep(GameMenu.GameSpeed); // Wait amount set by user (Game Speed)
-            _GameControllerTrigger.Set(); // Tell GameController event to fire (Do one round of GameControl)
+            if (Monitor.TryEnter(GameLock)) // Attempt to get exclusive lock on our GameLock Object
+            {
+                CurrentThread = 0;
+                Monitor.Exit(GameLock);
+
+                _GamePause.WaitOne(); // Check for pause
+
+                Thread.Sleep(GameMenu.GameSpeed); // Wait amount set by user (Game Speed)
+                _GameControllerTrigger.Set(); // Tell GameController event to fire (Do one round of GameControl)
+
+                CheckIfAddFood(); // Check if we should add food based on Bonus Counter (Only if bonus is active)
+            }
+            else
+            {
+                Thread.Sleep(GameMenu.GameSpeed);
+            }
         }
     }
 
@@ -158,16 +172,19 @@ public class GameEngine : GameFunctions, IGameFunctions
 
             if (!GameActive) // Check if Game is still active (This check is for Exiting the Game/Program)
             {
-                return;
+                break;
             }
 
-            CheckIfAddFood();
+            lock (GameLock) // lock our GameLock Object
+            {
+                CurrentThread = 1;
 
-            UpdateSnake(GameSnakeDirection);
+                UpdateSnake(GameSnakeDirection);
 
-            CheckIfColOnSnake();
+                CheckIfColOnSnake();
 
-            CheckIfColOnFood();
+                CheckIfColOnFood();
+            }
 
             await CheckIfWon();
         }

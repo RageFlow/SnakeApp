@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -40,6 +42,10 @@ namespace SnakeApp
                 {"Magenta", Brushes.Magenta },
                 {"Lime", Brushes.Lime }
             };
+
+            SnakeGameMenu.LoadHighscores();
+
+            listboxFolder1.ItemsSource = SnakeGameMenu.Highscores.OrderByDescending(x => x.Number).Take(10);
         }
 
         private void StartGame(object sender, RoutedEventArgs e) // StartGame method called by the GameMenu Start button
@@ -65,6 +71,21 @@ namespace SnakeApp
             SnakeGameEngine.StopGame();
         }
 
+        private void ToggleShowHighscores(object sender, RoutedEventArgs e) // StopGame method called by the GameMenu Stop button
+        {
+            // Toggle Scoreboard
+            if (ScoreboardContainer.Visibility == Visibility.Hidden)
+            {
+                ScoreboardContainer.Visibility = Visibility.Visible;
+                ScoreboardContainerBackground.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ScoreboardContainer.Visibility = Visibility.Hidden;
+                ScoreboardContainerBackground.Visibility = Visibility.Hidden;
+            }
+        }
+
         // Methods for hiding and showing GameMenu UI buttons and elements
         public void HideMenu()
         {
@@ -75,6 +96,8 @@ namespace SnakeApp
             GameSizeInputBox.Visibility = Visibility.Hidden;
             GameSpeedInputBox.Visibility = Visibility.Hidden;
             GameBonusInputBox.Visibility = Visibility.Hidden;
+            GamePlayerNameInputBox.Visibility = Visibility.Hidden;
+
             GameSnakeColorInputBox.Visibility = Visibility.Hidden;
             GameFoodColorInputBox.Visibility = Visibility.Hidden;
         }
@@ -83,6 +106,8 @@ namespace SnakeApp
             GameSizeInputBox.Visibility = Visibility.Visible;
             GameSpeedInputBox.Visibility = Visibility.Visible;
             GameBonusInputBox.Visibility = Visibility.Visible;
+            GamePlayerNameInputBox.Visibility = Visibility.Visible;
+
             GameSnakeColorInputBox.Visibility = Visibility.Visible;
             GameFoodColorInputBox.Visibility = Visibility.Visible;
         }
@@ -120,6 +145,11 @@ namespace SnakeApp
         private void BonusTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method from UI (MainWindow.xaml file).
         {
             SnakeGameMenu.GameBonusInputText = GameBonusInput.Text;
+        }
+
+        private void PlayerNameTextChanged(object sender, TextChangedEventArgs args) // TextChangedEventHandler delegate method from UI (MainWindow.xaml file).
+        {
+            SnakeGameMenu.GamePlayerNameInputText = GamePlayerNameInput.Text;
         }
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e) // KeyDown event from UI (MainWindow.xaml file), so we can have game input through the users keyboard.

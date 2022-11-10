@@ -103,7 +103,7 @@
 
                 <Rectangle Fill="Black" Opacity="0.7" Grid.ColumnSpan="5" Grid.RowSpan="6" />
 
-                <Label Name="Highscore" Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="0" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Top" FontSize="20" Foreground="White" Margin="0,-5,0,0" />
+                <Label Name="Highscore" Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="0" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Top" FontSize="20" Foreground="White" Padding="0,0,40,0" Margin="0,0,0,0" />
 
                 <Label Grid.Column="1" Grid.ColumnSpan="3" Content="Foo Snake" HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" FontSize="45" Foreground="White" Margin="0,35,0,0" Grid.RowSpan="2" />
 
@@ -148,18 +148,101 @@
                 </Canvas>
 
                 <Canvas Grid.Column="1" Grid.Row="5" Name="GameSnakeColorInputBox">
-                    <Label Content="Snake Color:" Margin="5,15,0,0" Foreground="White" FontSize="20"/>
-                    <ComboBox Name="SnakeColorComboBox" Width="100" Margin="15,50,0,0" SelectedIndex="0" DisplayMemberPath="Key"/>
+                    <Label Content="Snake Color:" Margin="5,15,0,0" Foreground="White" FontSize="15"/>
+                    <ComboBox Name="SnakeColorComboBox" Width="80" Margin="12,45,0,0" SelectedIndex="0" DisplayMemberPath="Key"/>
                 </Canvas>
-                <Canvas Grid.Column="2" Grid.Row="5" Name="GameFoodColorInputBox">
-                    <Label Content="Food Color:" Margin="9,15,0,0" Foreground="White" FontSize="20"/>
-                    <ComboBox Name="FoodColorComboBox" Width="100" Margin="15,50,0,0" SelectedIndex="0" DisplayMemberPath="Key"/>
+                <Canvas Grid.Column="2" Grid.Row="5" Name="GameFoodColorInputBox" Margin="-20,0,0,0">
+                    <Label Content="Food Color:" Margin="9,15,0,0" Foreground="White" FontSize="15"/>
+                    <ComboBox Name="FoodColorComboBox" Width="80" Margin="14,45,0,0" SelectedIndex="0" DisplayMemberPath="Key"/>
+                </Canvas>
+
+                <Canvas Grid.Column="3" Grid.Row="5" Name="GamePlayerNameInputBox" Margin="-30,0,0,0">
+                    <Label Content="Player Name:" Margin="0,15,10,20" Foreground="White" FontSize="15"/>
+                    <TextBox Name="GamePlayerNameInput" TextChanged="PlayerNameTextChanged" Text="Player" Height="18" Width="100" Margin="5,49,0,0" />
                 </Canvas>
 
             </Grid>
         </Viewbox>
 
-        <Viewbox Stretch="Uniform" Grid.Column="1" Grid.Row="2">
+
+        <Viewbox Stretch="Uniform" Grid.Column="1" Grid.Row="2" Panel.ZIndex="200">
+            <Grid Height="430" Width="400">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="10" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28"/>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="10"/>
+                </Grid.RowDefinitions>
+
+                <Button Name="ShowAllHighscores" Click="ToggleShowHighscores" Panel.ZIndex="300" Width="60" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="5" >
+                    <Label Content="Highscores" Foreground="White" Height="16" FontSize="10" Padding="2,0,2,0"/>
+                </Button>
+
+                <Rectangle x:Name="ScoreboardContainerBackground" Visibility="Hidden" Grid.ColumnSpan="3" Grid.RowSpan="3" Fill="Black" Opacity="0.7"  />
+
+                <Canvas x:Name="ScoreboardContainer" Visibility="Hidden" Grid.Row="1" Grid.Column="1">
+                    <Grid Margin="0,0,0,5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="20"/>
+                            <RowDefinition Height="20"/>
+                            <RowDefinition Height="1*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Top 10 Scores!" Grid.Row="0"/>
+
+                        <Grid Margin="0,0,0,5" Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="5" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="5" />
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="40" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Player Name" Grid.Column="0"/>
+                            <TextBlock Text="Score" Grid.Column="2"/>
+                            
+                            <TextBlock Text="Size" Grid.Column="4"/>
+                            <TextBlock Text="Speed" Grid.Column="5"/>
+                            <TextBlock Text="Bonus" Grid.Column="6"/>
+                        </Grid>
+                        <ItemsControl x:Name="listboxFolder1" ItemsSource="{Binding}" Grid.Row="2">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="Gray" BorderThickness="0,1,0,1" Margin="0,0,0,-1">
+                                        <Grid Margin="0,0,0,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="5" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="5" />
+                                                <ColumnDefinition Width="40" />
+                                                <ColumnDefinition Width="40" />
+                                                <ColumnDefinition Width="40" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding PlayerName}" Grid.Column="0"/>
+                                            <TextBlock Text=":" Grid.Column="1" />
+                                            <TextBlock Text="{Binding Number}" Grid.Column="2"/>
+                                            
+                                            <TextBlock Text="{Binding Size}" Grid.Column="4"/>
+                                            <TextBlock Text="{Binding Speed}" Grid.Column="5"/>
+                                            <TextBlock Text="{Binding Bonus}" Grid.Column="6"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Canvas>
+            </Grid>
+        </Viewbox>
+
+        <Viewbox Stretch="Uniform" Visibility="Visible" Grid.Column="1" Grid.Row="2">
             <Canvas Background="Black" Height="430" Width="400">
 
                 <Border Background="Black" BorderBrush="White" BorderThickness="0,0,0,2" Margin="0,0,0,0">

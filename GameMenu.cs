@@ -1,6 +1,16 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Security.Principal;
 using System.Threading.Tasks;
+using System.Windows.Documents;
+using System.Windows.Input;
 using static SnakeApp.MainWindow;
+using static System.Formats.Asn1.AsnWriter;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SnakeApp
 {
@@ -13,11 +23,13 @@ namespace SnakeApp
         public bool GameBonusActive = false;
         public bool GameBonusAdd = false;
         public int GameBonusCounter = 0;
+
         public string GameSizeInputText { get; set; } = GameSize.ToString();
         public string GameSpeedInputText { get; set; } = GameSpeed.ToString();
         public string GameBonusInputText { get; set; } = GameBonus.ToString();
-
-        public int Highscore = 0;
+        public string GamePlayerNameInputText { get; set; } = "Player";
+        private string highscorePath = @"..\SnakeHighscores.txt";
+        public ObservableCollection<Score> Highscores = new();
 
         public void UpdateGameSettings()
         {
@@ -63,17 +75,79 @@ namespace SnakeApp
 
         public void UpdateHighscore(int score)
         {
-            Highscore = score > SnakeGameMenu.Highscore ? score : SnakeGameMenu.Highscore;
-            if (SnakeGameMenu.Highscore > 0)
+            if (score > 0)
             {
-                AppWindow.Highscore.Content = $"Highscore: {SnakeGameMenu.Highscore * 1000}";
+                AppWindow.Highscore.Content = $"Score: {GamePlayerNameInputText} - {score * 1000}"; // Show Last achieved thread
+
+                // New Score
+                var ko = new Score() {
+                    Number = score * 1000,
+                    PlayerName = GamePlayerNameInputText,
+                    Bonus = GameBonusActive == true ? GameBonus : 0,
+                    Size = GameSize,
+                    Speed = GameSpeed 
+                };
+                Highscores.Add(ko); // Adding score for File Write
+
+                SaveHighScore(); // Write to File
+
+                Highscores.Remove(ko); // Remove Score for UI Update Short
+
+                Score Yikes = Highscores.Where(x => x.Number < score * 1000).FirstOrDefault() ?? new Score(); // Get Score just below in score from new score
+
+                if (Yikes != null && Yikes.Number > 0) // Error Checking
+                {
+                    Highscores.Insert(Highscores.IndexOf(Yikes), ko); // Insert new score to Top 10 at above any beaten scores
+                }
+                else
+                {
+                    Highscores.Add(ko); // Add Score to All Highscore
+                }
             }
             else
             {
-                AppWindow.Highscore.Content = "";
+                AppWindow.Highscore.Content = ""; // Clear Current score if no score was achieved
             }
 
-            AppWindow.ScoreBoardScore.Content = "";
+            AppWindow.ScoreBoardScore.Content = ""; // Clear game score (The one visible while game is active)
         }
+
+        public void SaveHighScore()
+        {
+            string outputJSON = Newtonsoft.Json.JsonConvert.SerializeObject(Highscores, Newtonsoft.Json.Formatting.Indented); // Serialize Highscore
+            File.WriteAllText(highscorePath, outputJSON + Environment.NewLine); // Write Highscore to File
+        }
+
+        public void LoadHighscores()
+        {
+            if (File.Exists(highscorePath)) // Check if highscore file exists
+            {
+                String JSONtxt = File.ReadAllText(highscorePath); // JsonText based on file
+                var scores = Newtonsoft.Json.JsonConvert.DeserializeObject<IEnumerable<Score>>(JSONtxt); // Deserialize file text to List
+
+                if (scores != null) // Error Checking
+                {
+                    Highscores = new(); // Reset 
+                    foreach (var item in scores.OrderByDescending(x => x.Number)) // Add file scores desc to Highscores
+                    {
+                        Highscores.Add(new Score() {
+                            Number = item.Number,
+                            PlayerName = item.PlayerName,
+                            Bonus = item.Bonus,
+                            Size = item.Size,
+                            Speed = item.Speed });
+                    }
+                }
+            }
+        }
+    }
+
+    public class Score
+    {
+        public string PlayerName { get; set; } = "";
+        public int Number { get; set; }
+        public int Bonus { get; set; }
+        public int Size { get; set; }
+        public int Speed { get; set; }
     }
 }

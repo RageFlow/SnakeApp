@@ -10,7 +10,7 @@
   <Class Name="SnakeApp.GameMenu">
     <Position X="7.25" Y="2.5" Width="2.25" />
     <TypeIdentifier>
-      <HashCode>AAKgABAAgAAAAAAIAAgAAAAAAMAAAAAAAAAAACAJAAA=</HashCode>
+      <HashCode>AAKgABAAgABAAAAMAAgAAABAAMAAAIAAAAAAACAJAAA=</HashCode>
       <FileName>GameMenu.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -44,7 +44,7 @@
       </Enum>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>SAEIAIAAACAoAkCAEIQABAlhQAYEEAAAAAJAAAFAwEA=</HashCode>
+      <HashCode>SAEIAIAACCAoAkCAEIQABAlhQAYEEAAAAAJAAAFAwEA=</HashCode>
       <FileName>MainWindow.xaml.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.289" Collapsed="true" />
