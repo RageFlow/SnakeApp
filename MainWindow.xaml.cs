@@ -317,7 +317,7 @@ namespace SnakeApp
 
         public double ScaleValue
         {
-            get => (double)GetValue(ScaleValueProperty); // Get value of DependencyObject
+            get => ScaleValueProperty != null ? (double)GetValue(ScaleValueProperty) : 1; // Get value of DependencyObject
             set => SetValue(ScaleValueProperty, value); // Set value of DependencyObject
         }
         #endregion
